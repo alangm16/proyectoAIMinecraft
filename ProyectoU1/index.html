@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego con IA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-image: url(img/wp2652303-wallpaper-minecraft-hd.jpg);
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
+            background-attachment: fixed;
+            background-color: #ffffff;
+            background-blend-mode: multiply;
+        }
+
+        #game-container {
+            display: flex;
+            /* Cambio a flex para alinear el tablero y el contenedor info */
+            justify-content: flex-end;
+            /* Alineación a la derecha */
+            align-items: flex-start;
+            /* Alineación arriba */
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(15, 40px);
+            grid-template-rows: repeat(15, 40px);
+            border: 3px solid black;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            background-size: cover;
+            background-position: center;
+            border: 1px solid black;
+            background-image: url("img/pasto.jpg");
+        }
+
+        .block {
+            background-image: url('img/lava.jpg');
+        }
+
+        .player {
+            background-image: url('img/player.png');
+        }
+
+        .zombie {
+            background-image: url('img/zombie.png');
+            z-index: 101;
+            /* Asegurarse de que el zombie esté sobre las telarañas */
+            position: relative;
+            /* Asegurarse de que el posicionamiento sea relativo */
+        }
+
+        .goal {
+            background-image: url('img/aldeano.png');
+        }
+
+        .recharge {
+            background-image: url("img/recarga.png")
+        }
+
+        .web {
+            background-image: url('img/telaraña.png');
+        }
+
+        #counter {
+            /* numero del nivel*/
+            font-size: 40px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        #step-counter {
+            /*contador de paso*/
+            font-size: 30px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        #titulo,
+        #counter,
+        #step-counter {
+            margin-bottom: 10px;
+        }
+
+        #reset-btn {
+            /*boton de reseteo*/
+            font-size: 20px;
+            transform: translate(-58%, -50%);
+        }
+
+        .wrapper {
+            margin-left: 300px;
+            padding-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            left: 50%;
+            top: 50%;
+        }
+
+        a {
+            display: block;
+            width: 250px;
+            height: 50px;
+            line-height: 46px;
+            text-decoration: none;
+            text-align: center;
+            border-radius: 50px;
+            border: 3px solid rgb(255, 255, 255);
+            color: rgb(255, 255, 255);
+            font-size: 20px;
+            font-family: arial;
+            position: relative;
+            overflow: hidden;
+            background: transparent;
+            text-transform: uppercase;
+            transition: all .35s;
+        }
+
+        a:before,
+        a:after {
+            position: absolute;
+            content: "";
+            width: 100%;
+            height: 100%;
+            top: -100%;
+            left: 0;
+            background: rgb(37, 202, 16);
+            z-index: -1;
+            transition: all .35s;
+        }
+
+        a:before {
+            opacity: .5;
+        }
+
+        a:after {
+            transition-delay: .2s;
+        }
+
+        a:hover {
+            color: #fff;
+        }
+
+        a:hover:before,
+        a:hover:after {
+            top: 0;
+        }
+
+        /* Contenedor para el contador de pasos, botón de reinicio, etiquetas de estado y nivel */
+        #info-container {
+            border: 2px solid black;
+            border-radius: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            position: relative;
+            height: 610px;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            align-items: center;
+            justify-content: space-between;
+            margin-right: 50px;
+        }
+
+        #info-container {
+
+            background: rgba(0, 0, 0, 0.19);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(8.6px);
+            -webkit-backdrop-filter: blur(8.6px);
+            border: 1px solid rgba(0, 0, 0, 0.12);
+        }
+
+        #player-state,
+        #estado,
+        #titulo {
+            font-size: 35px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        #player-state,
+        #estado,
+        #titulo,
+        #counter,
+        #step-counter {
+
+            font-family: "VT323";
+            font-weight: 400;
+            font-size: 45px;
+        }
+
+        #titulo {
+            color: gray;
+            font-size: 60px;
+            font-weight: 500;
+        }
+        .title{
+            position: absolute;
+            top: -10%;
+            right: 24%;
+        }
+        #titulo-principal{
+            font-size: 100PX;
+            font-family: "VT323";
+            text-align: center;
+            -webkit-text-fill-color: rgb(215, 215, 219); 
+            -webkit-text-stroke: 1px black;
+            font-weight: 900;
+            letter-spacing: -4px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="title">
+        <h1 id="titulo-principal">Minecraft IA</h1> 
+    </div>
+    <div id="game-container">
+        <div id="info-container">
+            <div id="titulo">Juego con IA</div>
+            <div id="counter">Nivel: <span id="level">1</span></div>
+            <div id="step-counter">Pasos restantes: <span id="steps">15</span></div>
+            <div id="estado">Estado: <span id="player-state">Suelo</span></div>
+            <div id="game-over" style="display: none; font-size: 36px; font-weight: bold; color: red;">Game Over</div>
+            <!-- Mensaje de Game Over oculto por defecto -->
+            <div class="wrapper" id="reset-btn">
+                <a href="#">Reiniciar Nivel</a>
+            </div>
+        </div>
+        <div id="game-container"> <!-- Se eliminaron los estilos de este div, ya que se agregarán en el CSS -->
+            <div class="grid" id="grid"></div>
+        </div>
+    </div>
+    <script>
+        // Clase Nodo para el algoritmo A*
+        class Node {
+            constructor(fila, columna, g = 0, h = 0, padre = null) {
+                this.fila = fila;
+                this.columna = columna;
+                this.g = g; // Costo acumulado del nodo inicial a este nodo
+                this.h = h; // Heurística, estimación del costo desde este nodo hasta el objetivo
+                this.padre = padre; // Nodo padre en el camino óptimo
+            }
+
+            get f() {
+                return this.g + this.h; // Costo total: costo acumulado + heurística
+            }
+        }
+
+        const grid = document.getElementById('grid');
+        const counter = document.getElementById('level');
+        const stepCounter = document.getElementById('steps'); // Seleccionar el contador de pasos
+        const resetBtn = document.getElementById('reset-btn');
+        const gameOverMessage = document.getElementById('game-over');
+        const playerState = document.getElementById('player-state'); // Nuevo elemento para mostrar el estado del jugador
+        const rows = 15;
+        const cols = 15;
+        let blocks = [];
+        let rechargePoints = [];
+        let playerIndex;
+        let goalIndex;
+        let level = 1;
+        let stepsRemaining = 15; // Inicializar el contador de pasos
+
+        function createGrid() {
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    grid.appendChild(cell);
+                }
+            }
+        }
+        createGrid();
+
+        function updatePlayerState() {
+            const playerRow = Math.floor(playerIndex / cols);
+            const playerCol = playerIndex % cols;
+
+            if (playerIndex === goalIndex) {
+                playerState.textContent = 'Meta';
+            } else if (grid.children[playerIndex].classList.contains('recharge')) {
+                playerState.textContent = 'Recarga';
+            } else if (grid.children[playerIndex].classList.contains('web')) {
+                playerState.textContent = 'Atascado';
+            } else {
+                playerState.textContent = 'Suelo (buscando)';
+            }
+        }
+
+        function generateBlocks() {
+            blocks = [];
+            while (blocks.length < (rows * cols) / 4) {
+                const row = Math.floor(Math.random() * rows);
+                const col = Math.floor(Math.random() * cols);
+                if (row !== 0 || col !== 0) {
+                    const index = row * cols + col;
+                    if (!blocks.includes(index)) {
+                        blocks.push(index);
+                        const cell = grid.children[index];
+                        cell.classList.add('block', 'cell');
+                    }
+                }
+            }
+        }
+
+        function generatePlayer() {
+            do {
+                playerIndex = Math.floor(Math.random() * (rows * cols));
+            } while (blocks.includes(playerIndex));
+
+            let player = grid.children[playerIndex];
+            player.classList.add('player', 'cell');
+        }
+
+        function generateGoal() {
+            do {
+                goalIndex = Math.floor(Math.random() * (rows * cols));
+            } while (blocks.includes(goalIndex) || goalIndex === playerIndex || grid.children[goalIndex].classList.contains('web') || grid.children[goalIndex].classList.contains('recharge')); // Asegurarse de que el aldeano no esté en una telaraña
+
+            const goal = grid.children[goalIndex];
+            goal.classList.add('goal', 'cell');
+        }
+
+        function generateRechargePoints() {
+            rechargePoints = [];
+            while (rechargePoints.length < 5) {
+                const row = Math.floor(Math.random() * rows);
+                const col = Math.floor(Math.random() * cols);
+                const index = row * cols + col;
+                if (!blocks.includes(index) && !rechargePoints.some(point => point[0] === row && point[1] === col)) {
+                    rechargePoints.push([row, col]);
+                    const cell = grid.children[index];
+                    cell.classList.add('recharge', 'cell');
+                }
+            }
+        }
+
+        function generateWeb() {
+            for (let i = 0; i < (rows * cols) / 16; i++) {
+                let row, col, index;
+                do {
+                    row = Math.floor(Math.random() * rows);
+                    col = Math.floor(Math.random() * cols);
+                    index = row * cols + col;
+                } while (blocks.includes(index) || index === playerIndex || index === goalIndex);
+
+                const cell = grid.children[index];
+                cell.classList.add('web', 'cell');
+            }
+        }
+
+        function movePlayer() {
+            if (stepsRemaining <= 0) {
+                clearInterval(moveInterval);
+                gameOverMessage.style.display = 'block';
+                return;
+            }
+            // Verificar si el jugador está pasando por una telaraña
+            const playerCell = grid.children[playerIndex];
+            if (playerCell.classList.contains('web')) {
+                stepsRemaining--; // Reducir el contador de pasos
+                stepCounter.textContent = stepsRemaining; // Actualizar el contador de pasos en la interfaz
+                playerCell.classList.remove('web'); // Quitar la telaraña del camino
+            }
+
+            const playerRow = Math.floor(playerIndex / cols);
+            const playerCol = playerIndex % cols;
+
+            const startNode = new Node(playerRow, playerCol);
+            const goalNode = new Node(Math.floor(goalIndex / cols), goalIndex % cols);
+            const openSet = [startNode];
+            const closedSet = [];
+
+            while (openSet.length > 0) {
+                let currentNode = openSet[0];
+                for (let i = 1; i < openSet.length; i++) {
+                    if (openSet[i].f < currentNode.f || (openSet[i].f === currentNode.f && openSet[i].h < currentNode.h)) {
+                        currentNode = openSet[i];
+                    }
+                }
+
+                const currentIndex = openSet.indexOf(currentNode);
+                openSet.splice(currentIndex, 1);
+                closedSet.push(currentNode);
+
+                if (currentNode.fila === goalNode.fila && currentNode.columna === goalNode.columna) {
+                    let path = [];
+                    let temp = currentNode;
+                    while (temp) {
+                        path.push([temp.fila, temp.columna]);
+                        temp = temp.padre;
+                    }
+                    path = path.reverse();
+
+                    const nextStep = path[1];
+                    const nextIndex = nextStep[0] * cols + nextStep[1];
+                    const player = grid.querySelector('.player');
+                    player.classList.remove('player');
+                    playerIndex = nextIndex;
+                    const newPlayer = grid.children[playerIndex];
+                    newPlayer.classList.add('player');
+
+                    if (playerIndex === goalIndex) {
+                        resetGame();
+                        level++;
+                        counter.textContent = level;
+                        stepsRemaining = 15;
+                        stepCounter.textContent = stepsRemaining;
+                    }
+
+                    stepsRemaining--;
+                    stepCounter.textContent = stepsRemaining;
+
+                    updatePlayerState(); // Actualizar el estado del jugador
+                    return;
+                }
+
+                const neighbors = [
+                    [currentNode.fila - 1, currentNode.columna],
+                    [currentNode.fila + 1, currentNode.columna],
+                    [currentNode.fila, currentNode.columna - 1],
+                    [currentNode.fila, currentNode.columna + 1]
+                ];
+
+                for (let i = 0; i < neighbors.length; i++) {
+                    const [row, col] = neighbors[i];
+                    if (row >= 0 && col >= 0 && row < rows && col < cols && !blocks.includes(row * cols + col)) {
+                        const newNode = new Node(row, col, currentNode.g + 1, Math.abs(row - goalNode.fila) + Math.abs(col - goalNode.columna), currentNode);
+                        if (!closedSet.some(node => node.fila === row && node.columna === col)) {
+                            if (!openSet.some(node => node.fila === row && node.columna === col)) {
+                                openSet.push(newNode);
+                                console.log(`Agregado a openSet: fila ${row}, columna ${col}, g: ${newNode.g}, h: ${newNode.h}, f: ${newNode.f}`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function rechargeSteps() {
+            const playerRow = Math.floor(playerIndex / cols);
+            const playerCol = playerIndex % cols;
+            const playerCell = grid.children[playerIndex];
+            if (rechargePoints.some(point => point[0] === playerRow && point[1] === playerCol)) {
+                playerCell.classList.remove('recharge');
+                stepsRemaining = 15;
+                stepCounter.textContent = stepsRemaining;
+            }
+        }
+
+        let moveInterval = setInterval(() => {
+            movePlayer();
+            rechargeSteps();
+        }, 500);
+
+        function resetLevel() {
+            level = 1;
+            counter.textContent = level;
+            resetGame();
+            stepsRemaining = 15; // Restablecer el contador de pasos
+            stepCounter.textContent = stepsRemaining; // Actualizar el contador de pasos en la interfaz
+            gameOverMessage.style.display = 'none'; // Ocultar el mensaje de Game Over
+            moveInterval = setInterval(() => {
+                movePlayer();
+                rechargeSteps();
+            }, 500); // Reiniciar el intervalo de movimiento
+        }
+
+        function resetGame() {
+            grid.innerHTML = '';
+            createGrid();
+            generateBlocks();
+            generateRechargePoints(); // Agregar esta línea para generar los puntos de recarga
+            generateWeb(); // Agregar esta línea para generar telarañas
+            generatePlayer();
+            generateGoal();
+        }
+
+        generateBlocks();
+        generateRechargePoints(); // Agregar esta línea para generar los puntos de recarga
+        generateWeb(); // Agregar esta línea para generar telarañas
+        generatePlayer();
+        generateGoal();
+
+        resetBtn.addEventListener('click', resetLevel);
+
+    </script>
+</body>
+
+</html>
